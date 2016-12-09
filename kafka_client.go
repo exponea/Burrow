@@ -20,6 +20,7 @@ import (
 	"github.com/linkedin/Burrow/protocol"
 	"sync"
 	"time"
+	"regexp"
 )
 
 type KafkaClient struct {
@@ -36,12 +37,15 @@ type KafkaClient struct {
 	topicMap           map[string]int
 	topicMapLock       sync.RWMutex
 	brokerOffsetTicker *time.Ticker
+	topicFilter        TopicFilter
 }
 
 type BrokerTopicRequest struct {
 	Result chan int
 	Topic  string
 }
+
+type TopicFilter func(string) bool
 
 func NewKafkaClient(app *ApplicationContext, cluster string) (*KafkaClient, error) {
 	// Set up sarama config from profile
@@ -51,6 +55,19 @@ func NewKafkaClient(app *ApplicationContext, cluster string) (*KafkaClient, erro
 	clientConfig.Net.TLS.Enable = profile.TLS
 	clientConfig.Net.TLS.Config = &tls.Config{}
 	clientConfig.Net.TLS.Config.InsecureSkipVerify = profile.TLSNoVerify
+
+	var topicFilter TopicFilter
+	if app.Config.Kafka[cluster].TopicBlacklist == "" {
+		topicFilter = func (topic string) bool {return true}
+	} else {
+		blacklist, err := regexp.Compile(app.Config.Kafka[cluster].TopicBlacklist)
+		if err != nil {
+			return nil, err
+		}
+		topicFilter = func (topic string) bool {
+			return !blacklist.MatchString(topic)
+		}
+	}
 
 	sclient, err := sarama.NewClient(app.Config.Kafka[cluster].Brokers, clientConfig)
 	if err != nil {
@@ -76,6 +93,7 @@ func NewKafkaClient(app *ApplicationContext, cluster string) (*KafkaClient, erro
 		wgProcessor:    sync.WaitGroup{},
 		topicMap:       make(map[string]int),
 		topicMapLock:   sync.RWMutex{},
+		topicFilter:    topicFilter,
 	}
 
 	// Start the main processor goroutines for __consumer_offset messages
@@ -243,6 +261,9 @@ func (client *KafkaClient) RefreshTopicMap() {
 	client.topicMapLock.Lock()
 	topics, _ := client.client.Topics()
 	for _, topic := range topics {
+		if (!client.topicFilter(topic)) {
+			continue;
+		}
 		partitions, _ := client.client.Partitions(topic)
 		client.topicMap[topic] = len(partitions)
 	}

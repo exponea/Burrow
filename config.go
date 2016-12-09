@@ -45,14 +45,15 @@ type BurrowConfig struct {
 		LockPath string   `gcfg:"lock-path"`
 	}
 	Kafka map[string]*struct {
-		Brokers       []string `gcfg:"broker"`
-		BrokerPort    int      `gcfg:"broker-port"`
-		Zookeepers    []string `gcfg:"zookeeper"`
-		ZookeeperPort int      `gcfg:"zookeeper-port"`
-		ZookeeperPath string   `gcfg:"zookeeper-path"`
-		OffsetsTopic  string   `gcfg:"offsets-topic"`
-		ZKOffsets     bool     `gcfg:"zookeeper-offsets"`
-		Clientprofile string   `gcfg:"client-profile"`
+		Brokers        []string `gcfg:"broker"`
+		BrokerPort     int      `gcfg:"broker-port"`
+		Zookeepers     []string `gcfg:"zookeeper"`
+		ZookeeperPort  int      `gcfg:"zookeeper-port"`
+		ZookeeperPath  string   `gcfg:"zookeeper-path"`
+		OffsetsTopic   string   `gcfg:"offsets-topic"`
+		ZKOffsets      bool     `gcfg:"zookeeper-offsets"`
+		Clientprofile  string   `gcfg:"client-profile"`
+		TopicBlacklist string   `gcfg:"topic-blacklist"`
 	}
 	Storm map[string]*struct {
 		Zookeepers    []string `gcfg:"zookeeper"`
